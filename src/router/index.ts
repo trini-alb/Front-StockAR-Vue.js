@@ -15,6 +15,7 @@ import VentaDetail from '@/views/VentaDetail.vue';
 // CORRECCIÓN: El nombre del componente era RegisterView, no RegistroView
 import RegisterView from '@/views/Register.vue'; 
 import CalcularPrecioView from '@/views/CalcularPrecio.vue';
+import ModificarRepuesto from '@/views/ModificarRepuesto.vue';
 
 // 2. Define la configuración de las rutas usando el tipo RouteRecordRaw
 const routes: Array<RouteRecordRaw> = [
@@ -30,7 +31,7 @@ const routes: Array<RouteRecordRaw> = [
     },
     {
       path: '/registro',
-      name: 'registro-usuario',
+      name: 'register',
       component: RegisterView, // <-- CORREGIDO
       meta: { public: true } // Ruta pública
     },
@@ -52,7 +53,7 @@ const routes: Array<RouteRecordRaw> = [
     {
       path: '/productos/:id/editar',
       name: 'product-edit',
-      component: ProductForm,
+      component: ModificarRepuesto,
       props: true,
     },
     {

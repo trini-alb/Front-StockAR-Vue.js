@@ -37,8 +37,8 @@
             <label class="u-label">Buscar producto por código o nombre:</label>
             <div class="search-input-container">
               <input 
-                v-model="searchProduct"
-                @input="searchProducts"
+                v-model.trim="searchProduct"
+                @keyup.enter="searchProducts"
                 type="text" 
                 placeholder="Ingrese código o nombre del producto"
                 class="u-input u-input-rectangle search-input"
@@ -74,115 +74,15 @@
           </div>
         </div>
 
-        <!-- Carrito de compras -->
-        <div v-if="ventaItems.length > 0" class="u-group u-group-1">
-          <div class="u-container-layout u-container-layout-1">
-            <h3>Carrito de Compras</h3>
-            
-            <!-- Lista de items -->
-            <div class="cart-items">
-              <div 
-                v-for="(item, index) in ventaItems" 
-                :key="index"
-                class="cart-item"
-              >
-                <div class="item-details">
-                  <span class="item-code">{{ item.producto.codigo }}</span>
-                  <span class="item-name">{{ item.producto.nombre }}</span>
-                  <span class="item-price">${{ item.producto.precioVenta.toFixed(2) }}</span>
-                </div>
-                
-                <!-- Cantidad -->
-                <div class="quantity-controls">
-                  <button 
-                    @click="decreaseQuantity(index)"
-                    class="qty-btn"
-                    :disabled="item.cantidad <= 1"
-                  >
-                    -
-                  </button>
-                  <input 
-                    v-model.number="item.cantidad"
-                    @change="updateQuantity(index, $event)"
-                    type="number" 
-                    min="1" 
-                    :max="item.producto.stock"
-                    class="qty-input"
-                  />
-                  <button 
-                    @click="increaseQuantity(index)"
-                    class="qty-btn"
-                    :disabled="item.cantidad >= item.producto.stock"
-                  >
-                    +
-                  </button>
-                </div>
-                
-                <!-- Subtotal -->
-                <div class="item-subtotal">
-                  <span>Subtotal: ${{ (item.cantidad * item.producto.precioVenta).toFixed(2) }}</span>
-                </div>
-                
-                <!-- Eliminar -->
-                <button 
-                  @click="removeItem(index)"
-                  class="remove-btn"
-                  title="Eliminar producto"
-                >
-                  🗑️
-                </button>
-              </div>
-            </div>
-
-            <!-- Totales -->
-            <div class="cart-totals">
-              <div class="total-items">
-                <strong>Total Items: {{ totalItems }}</strong>
-              </div>
-              <div class="total-amount">
-                <strong>Total: ${{ totalAmount.toFixed(2) }}</strong>
-              </div>
-            </div>
-            
-            <!-- Información adicional de la venta -->
-            <div class="sale-info">
-              <div class="u-form-group">
-                <label class="u-label">Observaciones (opcional):</label>
-                <textarea 
-                  v-model="ventaData.observaciones"
-                  placeholder="Observaciones adicionales de la venta..."
-                  class="u-input u-input-rectangle"
-                  rows="3"
-                ></textarea>
-              </div>
-            </div>
-
-          </div>
-        </div>
-
-        <!-- Botones de acción -->
-        <div v-if="ventaItems.length > 0" class="action-buttons">
-          <button 
-            @click="finalizarVenta"
-            class="u-border-2 u-border-black u-btn u-button-style u-custom-color-1 u-hover-palette-2-base u-btn-3"
-            :disabled="loading || ventaItems.length === 0"
-          >
-            {{ loading ? 'Procesando...' : 'Finalizar Venta' }}
-          </button>
-          
-          <button 
-            @click="anularVenta"
-            class="u-border-2 u-border-black u-btn u-button-style u-custom-color-1 u-hover-palette-2-base u-btn-4"
-            :disabled="loading"
-          >
-            Anular Venta
-          </button>
-        </div>
-
-        <!-- Mensaje si no hay items -->
-        <div v-else class="empty-cart">
-          <p>No hay productos en el carrito. Busque y seleccione productos para comenzar la venta.</p>
-        </div>
+        <!-- Componente del Carrito de Compras -->
+        <ShoppingCart
+          v-model:items="ventaItems"
+          v-model:observaciones="ventaData.observaciones"
+          :loading="loading"
+          @finalizar="finalizarVenta"
+          @anular="anularVenta"
+          @show-message="showMessage"
+        />
 
         <!-- Mensajes de error/éxito -->
         <div v-if="message" class="message" :class="messageType">
@@ -205,9 +105,10 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRouter, useRoute } from 'vue-router';
 import { authService, productoService, ventaService } from '@/services';
 import type { Usuario, Producto } from '@/services';
+import ShoppingCart from '@/components/ShoppingCart.vue';
 
 const router = useRouter();
 
@@ -242,17 +143,6 @@ const ventaData = ref<Partial<VentaData>>({
   observaciones: ''
 });
 
-// Computed properties
-const totalItems = computed(() => {
-  return ventaItems.value.reduce((total, item) => total + item.cantidad, 0);
-});
-
-const totalAmount = computed(() => {
-  return ventaItems.value.reduce((total, item) => {
-    return total + (item.cantidad * item.producto.precioVenta);
-  }, 0);
-});
-
 // Métodos
 const searchProducts = async () => {
   if (searchProduct.value.trim().length < 2) {
@@ -262,14 +152,10 @@ const searchProducts = async () => {
 
   loading.value = true;
   try {
-    // Buscar por código o nombre
-    const allProducts = await productoService.getAll();
-    const searchTerm = searchProduct.value.toLowerCase().trim();
-    
-    searchResults.value = allProducts.filter(producto => 
-      producto.codigo.toString().includes(searchTerm) ||
-      producto.nombre.toLowerCase().includes(searchTerm)
-    ).slice(0, 10); // Limitar a 10 resultados
+    // CORRECCIÓN: Delegar la búsqueda al servicio en lugar de traer todos los productos.
+    // Esto es mucho más eficiente si la base de datos es grande.
+    // El servicio simulará el filtrado por ahora.
+    searchResults.value = await productoService.search(searchProduct.value);
     
   } catch (error) {
     console.error('Error buscando productos:', error);
@@ -311,42 +197,6 @@ const selectProduct = (producto: Producto) => {
   showMessage('Producto agregado al carrito', 'success');
 };
 
-const increaseQuantity = (index: number) => {
-  const item = ventaItems.value[index];
-  if (item.cantidad < item.producto.stock) {
-    item.cantidad++;
-  } else {
-    showMessage('No hay más stock disponible', 'error');
-  }
-};
-
-const decreaseQuantity = (index: number) => {
-  const item = ventaItems.value[index];
-  if (item.cantidad > 1) {
-    item.cantidad--;
-  }
-};
-
-const updateQuantity = (index: number, event: Event) => {
-  const target = event.target as HTMLInputElement;
-  const newQuantity = parseInt(target.value);
-  const item = ventaItems.value[index];
-  
-  if (newQuantity > 0 && newQuantity <= item.producto.stock) {
-    item.cantidad = newQuantity;
-  } else if (newQuantity > item.producto.stock) {
-    item.cantidad = item.producto.stock;
-    showMessage('Cantidad ajustada al stock disponible', 'error');
-  } else {
-    item.cantidad = 1;
-  }
-};
-
-const removeItem = (index: number) => {
-  ventaItems.value.splice(index, 1);
-  showMessage('Producto eliminado del carrito', 'success');
-};
-
 const finalizarVenta = async () => {
   if (ventaItems.value.length === 0) {
     showMessage('No hay productos en el carrito', 'error');
@@ -360,11 +210,14 @@ const finalizarVenta = async () => {
 
   loading.value = true;
   try {
+    const totalVenta = ventaItems.value.reduce((total, item) => {
+      return total + (item.cantidad * item.producto.precioVenta);
+    }, 0);
     // Preparar datos de la venta
     const ventaCompleta: VentaData = {
       observaciones: ventaData.value.observaciones || '',
       empleadoId: currentUser.value.empleado.idEmpleado,
-      total: totalAmount.value,
+      total: totalVenta,
       items: ventaItems.value.map(item => ({
         productoId: item.producto.idProducto,
         cantidad: item.cantidad,
@@ -434,10 +287,28 @@ const handleLogout = async () => {
 // Lifecycle
 onMounted(() => {
   currentUser.value = authService.getCurrentUser();
+  
+  // CORRECCIÓN: Precargar producto si viene desde la lista de productos
+  const route = useRoute();
+  const productoId = route.query.productoId;
+  if (productoId) {
+    const loadInitialProduct = async () => {
+      try {
+        const producto = await productoService.getById(Number(productoId));
+        if (producto) {
+          selectProduct(producto);
+        }
+      } catch (error) {
+        console.error("Error al precargar el producto:", error);
+        showMessage('No se pudo cargar el producto inicial', 'error');
+      }
+    };
+    loadInitialProduct();
+  }
 });
 </script>
 
-<style>
+<style scoped>
 /* Importar CSS originales */
 @import '/css/nicepage.css';
 @import '/css/Registrar-Venta.css';
@@ -534,136 +405,6 @@ onMounted(() => {
   color: #991b1b;
 }
 
-.cart-items {
-  margin: 20px 0;
-}
-
-.cart-item {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-  padding: 15px;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  margin: 10px 0;
-  background: white;
-}
-
-.item-details {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
-
-.item-code {
-  font-weight: bold;
-  color: #1e40af;
-  font-size: 0.9rem;
-}
-
-.item-name {
-  font-weight: 500;
-}
-
-.item-price {
-  color: #059669;
-  font-size: 0.9rem;
-}
-
-.quantity-controls {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-}
-
-.qty-btn {
-  background: #f3f4f6;
-  border: 1px solid #d1d5db;
-  width: 30px;
-  height: 30px;
-  border-radius: 4px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.qty-btn:hover:not(:disabled) {
-  background: #e5e7eb;
-}
-
-.qty-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.qty-input {
-  width: 60px;
-  text-align: center;
-  border: 1px solid #d1d5db;
-  border-radius: 4px;
-  padding: 5px;
-}
-
-.item-subtotal {
-  font-weight: bold;
-  color: #1e40af;
-  min-width: 120px;
-  text-align: right;
-}
-
-.remove-btn {
-  background: #fee2e2;
-  border: 1px solid #fca5a5;
-  color: #dc2626;
-  padding: 8px;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.remove-btn:hover {
-  background: #fecaca;
-}
-
-.cart-totals {
-  background: #f9fafb;
-  padding: 20px;
-  border-radius: 8px;
-  margin: 20px 0;
-  text-align: right;
-}
-
-.total-items {
-  margin-bottom: 10px;
-  font-size: 1.1rem;
-}
-
-.total-amount {
-  font-size: 1.3rem;
-  color: #1e40af;
-}
-
-.sale-info {
-  margin: 20px 0;
-}
-
-.action-buttons {
-  display: flex;
-  gap: 20px;
-  justify-content: center;
-  margin: 30px 0;
-}
-
-.empty-cart {
-  text-align: center;
-  padding: 60px 20px;
-  color: #6b7280;
-  background: #f9fafb;
-  border-radius: 12px;
-  margin: 20px 0;
-}
-
 .message {
   padding: 12px 20px;
   border-radius: 6px;
@@ -730,21 +471,6 @@ onMounted(() => {
   .drawer-nav {
     flex-direction: column;
     gap: 10px;
-  }
-  
-  .cart-item {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 10px;
-  }
-  
-  .quantity-controls {
-    align-self: center;
-  }
-  
-  .action-buttons {
-    flex-direction: column;
-    align-items: center;
   }
   
   .product-info {

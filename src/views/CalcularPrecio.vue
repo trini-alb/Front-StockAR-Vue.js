@@ -215,6 +215,7 @@ const actualizarCotizaciones = () => {
 
 const calcularPrecio = async () => {
   if (formulario.value.precioCompra <= 0 || formulario.value.porcentajeGanancia <= 0) {
+    resultado.value = null;
     errorMessage.value = 'Por favor ingrese valores válidos';
     return;
   }
@@ -250,6 +251,10 @@ const calcularPrecio = async () => {
       cotizacionUsada: necesitaConversion.value ? cotizacionActual.value : undefined
     };
     
+    // Limpiar formulario para el siguiente cálculo
+    formulario.value.precioCompra = 0;
+    formulario.value.porcentajeGanancia = 0;
+
   } catch (error) {
     errorMessage.value = 'Error al calcular el precio';
     console.error('Error en cálculo:', error);
@@ -291,8 +296,8 @@ onMounted(() => {
 });
 
 </script>
-
-<style>
+ 
+<style scoped>
 /* Importar CSS originales */
 @import '/css/nicepage.css';
 @import '/css/Calcular-Precio.css';

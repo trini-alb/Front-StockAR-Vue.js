@@ -1,4 +1,4 @@
-<template>
+<template> 
   <!-- Usar el diseño original con tabla -->
   <section class="u-clearfix u-section-1" id="sec-e069">
     <div class="u-clearfix u-sheet u-sheet-1">
@@ -10,6 +10,7 @@
           <input 
             v-model="searchTerm"
             type="text" 
+            @input="resetPage"
             placeholder="Buscar productos..."
             class="search-input"
           />
@@ -21,14 +22,14 @@
 
       <!-- Filtros -->
       <div class="filters-container">
-        <select v-model="selectedTipo" class="filter-select">
+        <select v-model="selectedTipo" @change="resetPage" class="filter-select">
           <option value="">Todos los tipos</option>
           <option v-for="tipo in tiposProducto" :key="tipo.idTipoProducto" :value="tipo.idTipoProducto">
             {{ tipo.nombre }}
           </option>
         </select>
         
-        <select v-model="stockFilter" class="filter-select">
+        <select v-model="stockFilter" @change="resetPage" class="filter-select">
           <option value="">Todo el stock</option>
           <option value="bajo">Stock bajo</option>
           <option value="disponible">Con stock</option>
@@ -105,7 +106,7 @@
                   🗑️
                 </button>
                 <router-link 
-                  :to="`/ventas/nueva?producto=${producto.idProducto}`"
+                  :to="{ name: 'venta-new', query: { productoId: producto.idProducto } }"
                   class="btn-accion btn-venta"
                   title="Nueva venta"
                 >
@@ -235,6 +236,10 @@ const loadData = async () => {
   }
 };
 
+const resetPage = () => {
+  currentPage.value = 1;
+};
+
 const getStockStatus = (producto: Producto) => {
   if (producto.stock === 0) return 'agotado';
   if (producto.stock <= 5) return 'bajo';
@@ -277,8 +282,8 @@ const formatCurrency = (amount: number) => {
   }).format(amount);
 };
 
-// const formatDate = (dateString: string) => {
-//   return new Date(dateString).toLocaleDateString('es-AR');
+// const formatDate = (dateString: string) => { // Comentado porque no se usa
+//   return new Date(dateString).toLocaleDateString('es-AR'); 
 // };
 
 // Lifecycle
@@ -287,7 +292,7 @@ onMounted(() => {
 });
 </script>
 
-<style>
+<style scoped>
 /* Importar CSS originales */
 @import '/css/nicepage.css';
 @import '/css/Lista-de-Respuestos.css';

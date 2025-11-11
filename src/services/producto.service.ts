@@ -60,6 +60,18 @@ export class ProductoService {
     const productos = await this.getAll();
     return productos.filter(p => p.stock <= 5); // Usar stock mínimo default
   }
+
+  async search(term: string): Promise<Producto[]> {
+    const lowerCaseTerm = term.toLowerCase().trim();
+    if (!lowerCaseTerm) return [];
+
+    const productos = await this.getAll();
+    return productos.filter(producto =>
+      producto.codigo.toString().includes(lowerCaseTerm) ||
+      producto.nombre.toLowerCase().includes(lowerCaseTerm)
+    ).slice(0, 10); // Limitar a 10 resultados
+  }
+
 }
 
 // Instancia singleton

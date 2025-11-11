@@ -21,7 +21,10 @@
     </section>
 
     <!-- Estadísticas rápidas (opcional) -->
-    <div class="stats-section" v-if="showStats">
+    <div v-if="loading" class="stats-loading">
+      Cargando estadísticas...
+    </div>
+    <div class="stats-section" v-else>
       <div class="container">
         <div class="stats-grid">
           <div class="stat-card">
@@ -70,7 +73,6 @@ const router = useRouter();
 
 // Estado reactivo
 const loading = ref(false);
-const showStats = ref(false); // Estadísticas opcionales
 const currentUser = ref<Usuario | null>(null);
 const productos = ref<Producto[]>([]);
 const recentVentas = ref<Venta[]>([]);
@@ -143,8 +145,8 @@ onMounted(() => {
   loadData();
 });
 </script>
-
-<style>
+ 
+<style scoped>
 /* Importar CSS originales */
 @import '/css/nicepage.css';
 @import '/css/MenuPrincipal.css';

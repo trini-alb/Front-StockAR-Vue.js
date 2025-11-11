@@ -1,10 +1,6 @@
 // Servicio de ventas
 import { apiService } from './api.service';
-import type { 
-  Venta, 
-  CreateVentaDto 
-} from '@/types/venta.types';
-
+import type { Venta, CreateVentaDto } from '@/types/venta.types';
 export class VentaService {
   private readonly endpoints = {
     ventas: '/ventas',

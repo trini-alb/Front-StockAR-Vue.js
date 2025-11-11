@@ -89,6 +89,8 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
+import { authService } from '@/services';
+import type { LoginCredentials } from '@/services';
 
 // Router para navegación
 const router = useRouter();
@@ -122,7 +124,7 @@ const handleLogin = async () => {
   errorMessage.value = '';
 
   try {
-    
+    const response = await authService.login(loginForm.value);
     // Login exitoso - redirigir al dashboard
     console.log('Login exitoso:', response.usuario.empleado.nombre);
     await router.push('/dashboard');
@@ -137,14 +139,14 @@ const handleLogin = async () => {
 
 // Lifecycle
 onMounted(() => {
-  // Si ya está autenticado, redirigir
-
+  // Si ya está autenticado, redirigir al dashboard
+  if (authService.getCurrentUser()) {
     router.push('/dashboard');
   }
 });
 </script>
-
-<style>
+ 
+<style scoped>
 /* Importar CSS originales */
 @import '/css/nicepage.css';
 @import '/css/login.css';

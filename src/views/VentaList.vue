@@ -81,10 +81,12 @@
         <div v-if="loading" class="table-container">
           <table class="u-table u-table-1">
             <thead class="u-table-header">
+              <!-- Puedes dejar el header visible si lo prefieres -->
               </thead>
             <tbody class="u-table-body">
               <tr v-for="n in 5" :key="n" class="skeleton-row">
-                <td v-for="i in 6" :key="i" class="u-table-cell"><div class="skeleton-line"></div></td>
+                <td v-for="i in 6" :key="i" class="u-table-cell">
+                  <div class="skeleton-line"></div></td>
               </tr>
             </tbody>
           </table>
@@ -93,7 +95,7 @@
         <div v-else-if="paginatedVentas.length > 0" class="table-container">
           <table class="u-table u-table-1">
             <thead class="u-table-header">
-              <tr class="u-table-row">
+              <tr style="height: 52px;">
                 <th class="u-table-cell">ID</th>
                 <th class="u-table-cell">Fecha</th>
                 <th class="u-table-cell">Empleado</th>
@@ -106,7 +108,7 @@
               <tr 
                 v-for="venta in paginatedVentas" 
                 :key="venta.idVenta"
-                class="u-table-row"
+                style="height: 96px;"
               >
                 <td class="u-table-cell">
                   <span class="venta-id">#{{ venta.idVenta }}</span>
@@ -151,7 +153,7 @@
                     <button 
                       @click="deleteVenta(venta)"
                       class="btn-accion btn-eliminar"
-                      title="Eliminar venta"
+                      title="Anular venta"
                       v-if="canDelete(venta)"
                     >
                       🗑️
@@ -161,6 +163,22 @@
               </tr>
             </tbody>
           </table>
+        </div>
+
+        <div v-else-if="!loading && ventas.length === 0" class="no-data">
+          <div class="no-data-content">
+            <h3>Aún no hay ventas registradas</h3>
+            <p>Comienza por registrar tu primera venta.</p>
+            <router-link to="/ventas/nueva" class="u-btn u-btn-primary">➕ Registrar Venta</router-link>
+          </div>
+        </div>
+
+        <div v-else-if="!loading && ventas.length === 0" class="no-data">
+          <div class="no-data-content">
+            <h3>Aún no hay ventas registradas</h3>
+            <p>Comienza por registrar tu primera venta.</p>
+            <router-link to="/ventas/nueva" class="u-btn u-btn-primary">➕ Registrar Venta</router-link>
+          </div>
         </div>
 
         <div v-else class="no-data">
@@ -252,34 +270,27 @@ const filters = ref<VentaFilter>({
   empleado: ''
 });
 
-// Paginación
-const itemsPerPage = ref(10);
-const { currentPage, totalPages, paginatedItems: paginatedVentas } = usePagination(filteredVentas, itemsPerPage);
-
 
 // Computed properties
 const filteredVentas = computed(() => {
   let result = ventas.value;
 
   // Filtro por fecha
-  if (filters.value.fechaDesde) {
-    result = result.filter(venta => 
-      new Date(venta.fechaHora) >= new Date(filters.value.fechaDesde)
-    );
+  if (filters.value.fechaDesde && filters.value.fechaDesde.trim() !== '') {
+    result = result.filter(venta => {
+      // Comparamos como strings para evitar problemas de zona horaria.
+      return venta.fechaHora.toString().split('T')[0] >= filters.value.fechaDesde;
+    });
   }
   
-  if (filters.value.fechaHasta) {
-    // CORRECCIÓN: Agregar T23:59:59 para incluir todo el día de 'fechaHasta'
-    const fechaHastaFinDelDia = filters.value.fechaHasta ? `${filters.value.fechaHasta}T23:59:59` : '';
-    if (fechaHastaFinDelDia) {
-      result = result.filter(venta => 
-        new Date(venta.fechaHora) <= new Date(fechaHastaFinDelDia)
-      );
-    }
+  if (filters.value.fechaHasta && filters.value.fechaHasta.trim() !== '') {
+    result = result.filter(venta => {
+      return venta.fechaHora.toString().split('T')[0] <= filters.value.fechaHasta;
+    });
   }
 
   // Filtro por empleado
-  if (filters.value.empleado) {
+  if (filters.value.empleado && filters.value.empleado.trim() !== '') {
     const idEmpleadoFiltro = parseInt(filters.value.empleado);
     result = result.filter(venta => 
       venta.empleado.idEmpleado === idEmpleadoFiltro
@@ -291,6 +302,10 @@ const filteredVentas = computed(() => {
     new Date(b.fechaHora).getTime() - new Date(a.fechaHora).getTime()
   );
 });
+
+// Paginación (debe definirse DESPUÉS de filteredVentas)
+const itemsPerPage = ref(10);
+const { currentPage, totalPages, paginatedItems: paginatedVentas } = usePagination(filteredVentas, itemsPerPage);
 
 const totalVentas = computed(() => filteredVentas.value.length);
 
@@ -321,7 +336,7 @@ const loadVentas = async () => {
   }
 };
 
-// Se agregó para manejar el @click del botón
+// Se agregó para manejar el @click del botón de filtrar
 const applyFilters = () => {
   // CORRECCIÓN: Al aplicar un filtro, siempre volvemos a la primera página para evitar páginas vacías.
   currentPage.value = 1;
@@ -329,7 +344,7 @@ const applyFilters = () => {
 };
 
 const clearFilters = () => {
-  // CORRECCIÓN: Asignación completa de las propiedades de VentaFilter
+  // CORRECCIÓN: Reiniciar el objeto de filtros a sus valores iniciales
   filters.value = {
     fechaDesde: '',
     fechaHasta: '',
@@ -359,7 +374,7 @@ const deleteVenta = async (venta: Venta) => {
     // Filtrar de la lista local
     ventas.value = ventas.value.filter(v => v.idVenta !== venta.idVenta);
     
-    // Asegurar que no quede en una página vacía
+    // CORRECCIÓN: Si la página actual queda vacía después de eliminar, retroceder.
     if (paginatedVentas.value.length === 0 && currentPage.value > 1) {
         currentPage.value--;
     }
@@ -372,14 +387,7 @@ const deleteVenta = async (venta: Venta) => {
 };
 
 const canDelete = (venta: Venta): boolean => {
-  // Solo permitir eliminar ventas del mismo día o si es admin
-  const today = new Date().toISOString().split('T')[0];
-  const ventaDate = venta.fechaHora.toString().split('T')[0];
-  
-  // Usar optional chaining de forma segura
-  const userRole = currentUser.value?.empleado?.rol?.nombre?.toLowerCase();
-
-  return ventaDate === today || userRole === 'admin';
+  return authService.canDeleteVenta(venta);
 };
 
 const getTotalQuantity = (detalles: DetalleVenta[]): number => {
@@ -412,7 +420,7 @@ onMounted(() => {
 });
 </script>
 
-<style>
+<style scoped>
 
 .filters-container {
   background: white;

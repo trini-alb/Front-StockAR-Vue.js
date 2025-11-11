@@ -20,8 +20,7 @@ const route = useRoute();
 // Determina si se debe mostrar la barra de navegación
 const showNavigation = computed(() => {
   // No mostrar en las rutas públicas como login o registro
-  return route.name !== 'login' && 
-         route.name !== 'registro-usuario';
+  return route.name !== 'login' && route.name !== 'register';
 });
 </script>
 

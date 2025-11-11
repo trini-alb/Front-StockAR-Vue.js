@@ -1,5 +1,5 @@
 <template>
-  <!-- Basado en Registro.html original -->
+  <!-- Basado en Registro.html -->
   <section class="u-clearfix u-image u-section-1" id="block-2">
     <img class="logo-sistema" src="/images/logo-Photoroom.png" alt="Logo del sistema" width="120" height="120">
     
@@ -187,6 +187,8 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue';
+import { useRouter } from 'vue-router';
+import { authService } from '@/services';
 
 const router = useRouter();
 
@@ -245,7 +247,18 @@ const toggleConfirmPassword = () => {
 };
 
 const handleRegister = async () => {
-  if (!isFormValid.value || loading.value) return;
+  if (loading.value) return;
+
+  if (!isFormValid.value) {
+    if (registerForm.value.contraseña !== registerForm.value.confirmarContraseña) {
+      errorMessage.value = 'Las contraseñas no coinciden.';
+    } else if (registerForm.value.contraseña.length < 6) {
+      errorMessage.value = 'La contraseña debe tener al menos 6 caracteres.';
+    } else {
+      errorMessage.value = 'Por favor, complete todos los campos correctamente.';
+    }
+    return;
+  }
 
   if (registerForm.value.contraseña !== registerForm.value.confirmarContraseña) {
     errorMessage.value = 'Las contraseñas no coinciden';
@@ -269,7 +282,7 @@ const handleRegister = async () => {
       }
     };
 
-
+    const response = await authService.register(userData);
     
     console.log('Registro exitoso:', response);
     alert('Usuario registrado correctamente. Ahora puedes iniciar sesión.');

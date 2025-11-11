@@ -257,6 +257,8 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
+import { authService, ventaService } from '@/services';
+import type { Usuario, Venta, DetalleVenta } from '@/services';
 
 
 const router = useRouter();
@@ -280,13 +282,8 @@ const totalQuantity = computed(() => {
 });
 
 const canDelete = computed(() => {
-  if (!venta.value || !currentUser.value) return false;
-  
-  // Solo permitir eliminar ventas del mismo día o si es admin
-  const today = new Date().toISOString().split('T')[0];
-  const ventaDate = new Date(venta.value.fechaHora).toISOString().split('T')[0];
-  
-  return ventaDate === today || currentUser.value.empleado?.rol?.nombre === 'admin';
+  if (!venta.value) return false;
+  return authService.canDeleteVenta(venta.value);
 });
 
 // Métodos
@@ -551,11 +548,12 @@ const showMessage = (text: string, type: 'success' | 'error') => {
 const handleLogout = async () => {
   if (confirm('¿Está seguro que desea cerrar sesión?')) {
     try {
-
+      await authService.logout();
       router.push('/login');
     } catch (error) {
       console.error('Error en logout:', error);
-    
+      // Forzar la limpieza y redirección incluso si el backend falla
+      authService.clearStorage();
       router.push('/login');
     }
   }
@@ -563,11 +561,12 @@ const handleLogout = async () => {
 
 // Lifecycle
 onMounted(() => {
+  currentUser.value = authService.getCurrentUser();
   loadVenta();
 });
 </script>
 
-<style>
+<style scoped>
 /* Importar CSS originales */
 @import '/css/nicepage.css';
 @import '/css/Detalle-venta.css';

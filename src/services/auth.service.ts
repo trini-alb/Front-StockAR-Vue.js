@@ -1,6 +1,7 @@
 // Servicio de autenticación - Similar a tu AuthService de Angular
 import { apiService } from './api.service';
 import type { LoginCredentials, AuthResponse, Usuario } from '@/types/auth.types';
+import type { Venta } from '@/types/venta.types';
 
 // Interfaz para el registro de usuario
 interface RegisterData {
@@ -80,6 +81,18 @@ export class AuthService {
   clearStorage(): void {
     localStorage.removeItem(this.STORAGE_KEYS.TOKEN);
     localStorage.removeItem(this.STORAGE_KEYS.USER);
+  }
+
+  canDeleteVenta(venta: Venta): boolean {
+    const currentUser = this.getCurrentUser();
+    if (!currentUser) return false;
+
+    const today = new Date().toISOString().split('T')[0];
+    const ventaDate = new Date(venta.fechaHora).toISOString().split('T')[0];
+
+    const userRole = currentUser.empleado?.rol?.nombre?.toLowerCase();
+
+    return ventaDate === today || userRole === 'admin';
   }
 
   // Método para verificar permisos (útil para guards)
