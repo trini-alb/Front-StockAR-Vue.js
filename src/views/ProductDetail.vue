@@ -176,12 +176,10 @@
 import { ref, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { productoService, authService, type Producto } from '@/services';
-
-
+import { formatCurrency } from '@/components/formatters';
 // Router
 const route = useRoute();
 const router = useRouter();
-
 // State
 const loading = ref(true);
 const error = ref('');
@@ -231,13 +229,6 @@ const stockStatusClass = computed(() => {
 });
 
 // Methods
-const formatCurrency = (amount: number, currency: 'ARS' | 'USD' = 'ARS'): string => {
-  return new Intl.NumberFormat('es-AR', {
-    style: 'currency',
-    currency: currency
-  }).format(amount);
-};
-
 const loadProduct = async (): Promise<void> => {
   try {
     loading.value = true;

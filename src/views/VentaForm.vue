@@ -1,32 +1,6 @@
 <template>
   <!-- Basado en Registrar-Venta.html con funcionalidad completa -->
   <div class="venta-form-container">
-    <!-- Header con navegación -->
-    <header class="u-black u-clearfix u-header u-header" id="header">
-      <div class="u-clearfix u-sheet u-valign-middle u-sheet-1">
-        <div class="custom-expanded u-clearfix u-custom-html u-custom-html-1">
-          <div class="menu-usuario">
-            <div class="menu-desplegable">
-              <span>{{ currentUser?.empleado?.nombre }}</span>
-              <a @click="handleLogout" href="#">Cerrar sesión</a>
-            </div>
-          </div>
-        </div>
-        <p class="u-text u-text-default u-text-1">
-          <span style="font-size: 1.875rem;">Registrar Venta</span>
-        </p>
-        
-        <!-- Navegación simplificada -->
-        <nav class="drawer-nav">
-          <router-link to="/dashboard">Inicio</router-link>
-          <router-link to="/productos">Lista de repuestos</router-link>
-          <router-link to="/productos/nuevo">Agregar repuesto</router-link>
-          <router-link to="/ventas">Lista de ventas</router-link>
-          <router-link to="/calcular-precio">Calcular precio</router-link>
-        </nav>
-      </div>
-    </header>
-
     <!-- Sección principal -->
     <section class="u-clearfix u-section-1" id="block-2">
       <div class="u-clearfix u-sheet u-sheet-1">
@@ -91,15 +65,6 @@
 
       </div>
     </section>
-
-    <!-- Footer -->
-    <footer class="u-align-center u-black u-clearfix u-container-align-center u-footer u-footer" id="footer">
-      <div class="u-clearfix u-sheet u-valign-middle u-sheet-1">
-        <router-link to="/dashboard" class="u-image u-logo u-image-1">
-          <img src="/images/logo-Photoroom.png" class="u-logo-image u-logo-image-1" alt="StockAR">
-        </router-link>
-      </div>
-    </footer>
   </div>
 </template>
 
@@ -139,7 +104,7 @@ const ventaItems = ref<VentaItem[]>([]);
 const message = ref('');
 const messageType = ref<'success' | 'error'>('success');
 
-const ventaData = ref<Partial<VentaData>>({
+const ventaData = ref<{ observaciones: string }>({
   observaciones: ''
 });
 
@@ -178,8 +143,9 @@ const selectProduct = (producto: Producto) => {
 
   if (existingIndex >= 0) {
     // Si ya existe, aumentar cantidad
-    if (ventaItems.value[existingIndex].cantidad < producto.stock) {
-      ventaItems.value[existingIndex].cantidad++;
+    const existingItem = ventaItems.value[existingIndex];
+    if (existingItem && existingItem.cantidad < producto.stock) {
+      existingItem.cantidad++;
     } else {
       showMessage('No hay más stock disponible', 'error');
     }
@@ -272,18 +238,6 @@ const showMessage = (text: string, type: 'success' | 'error') => {
   }, 3000);
 };
 
-const handleLogout = async () => {
-  if (confirm('¿Está seguro que desea cerrar sesión?')) {
-    try {
-      await authService.logout();
-      router.push('/login');
-    } catch (error) {
-      console.error('Error en logout:', error);
-      router.push('/login');
-    }
-  }
-};
-
 // Lifecycle
 onMounted(() => {
   currentUser.value = authService.getCurrentUser();
@@ -310,7 +264,6 @@ onMounted(() => {
 
 <style scoped>
 /* Importar CSS originales */
-@import '/css/nicepage.css';
 @import '/css/Registrar-Venta.css';
 
 /* Estilos adicionales para la funcionalidad de ventas */

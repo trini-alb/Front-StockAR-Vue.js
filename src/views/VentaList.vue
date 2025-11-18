@@ -173,14 +173,6 @@
           </div>
         </div>
 
-        <div v-else-if="!loading && ventas.length === 0" class="no-data">
-          <div class="no-data-content">
-            <h3>Aún no hay ventas registradas</h3>
-            <p>Comienza por registrar tu primera venta.</p>
-            <router-link to="/ventas/nueva" class="u-btn u-btn-primary">➕ Registrar Venta</router-link>
-          </div>
-        </div>
-
         <div v-else class="no-data">
           <div class="no-data-content">
             <h3>No se encontraron ventas 😕</h3>
@@ -242,9 +234,10 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { authService, ventaService, empleadoService } from '@/services';
-import type { Usuario, Venta, DetalleVenta, Empleado } from '@/services';
-import { usePagination } from './usePagination';
+import { authService, ventaService } from '@/services';
+import type { Usuario, Venta, DetalleVenta } from '@/services';
+import type { Empleado } from '@/types/auth.types';
+import { usePagination } from '@/views/usePagination';
 
 const router = useRouter();
 
@@ -259,7 +252,7 @@ interface VentaFilter {
 const currentUser = ref<Usuario | null>(null);
 const loading = ref(false);
 const ventas = ref<Venta[]>([]);
-const empleados = ref<Empleado[]>([]);
+// empleados ya está declarado arriba
 const message = ref('');
 const messageType = ref<'success' | 'error'>('success');
 
@@ -278,14 +271,37 @@ const filteredVentas = computed(() => {
   // Filtro por fecha
   if (filters.value.fechaDesde && filters.value.fechaDesde.trim() !== '') {
     result = result.filter(venta => {
-      // Comparamos como strings para evitar problemas de zona horaria.
-      return venta.fechaHora.toString().split('T')[0] >= filters.value.fechaDesde;
+      if (!venta.fechaHora) return false;
+      let fecha = '';
+      if (typeof venta.fechaHora === 'string' && venta.fechaHora) {
+        const fechaStr = String(venta.fechaHora);
+           fecha = (fechaStr.includes('T') ? fechaStr.split('T')[0] : fechaStr) || '';
+      } else if (venta.fechaHora instanceof Date) {
+        const iso = String(venta.fechaHora.toISOString());
+        fecha = (iso.includes('T') ? iso.split('T')[0] : iso) || '';
+      } else if (venta.fechaHora !== undefined && venta.fechaHora !== null) {
+        const d = new Date(venta.fechaHora as string | number | Date);
+        if (!isNaN(d.getTime())) {
+             const iso = String(d.toISOString());
+          fecha = (iso.includes('T') ? iso.split('T')[0] : iso) || '';
+        }
+      }
+      return fecha >= filters.value.fechaDesde;
     });
   }
   
   if (filters.value.fechaHasta && filters.value.fechaHasta.trim() !== '') {
     result = result.filter(venta => {
-      return venta.fechaHora.toString().split('T')[0] <= filters.value.fechaHasta;
+      if (!venta.fechaHora) return false;
+      let fecha = '';
+      if (typeof venta.fechaHora === 'string') {
+           fecha = (String(venta.fechaHora).includes('T') ? String(venta.fechaHora).split('T')[0] : String(venta.fechaHora)) || '';
+      } else if (venta.fechaHora instanceof Date) {
+        fecha = (venta.fechaHora.toISOString().split('T')[0]) || '';
+      } else if (venta.fechaHora) {
+        fecha = (new Date(venta.fechaHora as string | number | Date).toISOString().split('T')[0]) || '';
+      }
+      return fecha <= filters.value.fechaHasta;
     });
   }
 
@@ -304,9 +320,8 @@ const filteredVentas = computed(() => {
 });
 
 // Paginación (debe definirse DESPUÉS de filteredVentas)
-const itemsPerPage = ref(10);
+const itemsPerPage = ref(10); // itemsPerPage es un ref
 const { currentPage, totalPages, paginatedItems: paginatedVentas } = usePagination(filteredVentas, itemsPerPage);
-
 const totalVentas = computed(() => filteredVentas.value.length);
 
 const totalMonto = computed(() => {
@@ -315,19 +330,29 @@ const totalMonto = computed(() => {
 
 const ventasHoy = computed(() => {
   const today = new Date().toISOString().split('T')[0];
-  return filteredVentas.value.filter(venta => 
-    venta.fechaHora.toString().startsWith(today)
-  ).length;
+  return filteredVentas.value.filter(venta => {
+    if (!venta.fechaHora) return false;
+    let fecha = '';
+    if (typeof venta.fechaHora === 'string') {
+           fecha = (String(venta.fechaHora).includes('T') ? String(venta.fechaHora).split('T')[0] : String(venta.fechaHora)) || '';
+    } else if (venta.fechaHora instanceof Date) {
+      fecha = (venta.fechaHora.toISOString().split('T')[0]) || '';
+    } else if (venta.fechaHora) {
+      fecha = (new Date(venta.fechaHora as string | number | Date).toISOString().split('T')[0]) || '';
+    }
+    return fecha === today;
+  }).length;
 });
 
 // Métodos
+const empleados = ref<Empleado[]>([]);
 const loadVentas = async () => {
   loading.value = true;
   try {
-    // Nota: El uso de Promise.all está bien para cargar en paralelo
-    const [ventasData, empleadosData] = await Promise.all([ventaService.getAll(), empleadoService.getAll()]);
+    const ventasData = await ventaService.getAll();
     ventas.value = ventasData;
-    empleados.value = empleadosData;
+    // Si necesitas cargar empleados, implementa aquí la lógica adecuada
+    // empleados.value = ...
   } catch (error) {
     console.error('Error cargando ventas:', error);
     showMessage('Error al cargar las ventas', 'error');
@@ -338,19 +363,17 @@ const loadVentas = async () => {
 
 // Se agregó para manejar el @click del botón de filtrar
 const applyFilters = () => {
-  // CORRECCIÓN: Al aplicar un filtro, siempre volvemos a la primera página para evitar páginas vacías.
   currentPage.value = 1;
   showMessage('Filtros aplicados', 'success');
 };
 
 const clearFilters = () => {
-  // CORRECCIÓN: Reiniciar el objeto de filtros a sus valores iniciales
   filters.value = {
     fechaDesde: '',
     fechaHasta: '',
     empleado: ''
   };
-  currentPage.value = 1; // Volver a la página 1 al limpiar filtros
+  currentPage.value = 1;
   showMessage('Filtros limpiados', 'success');
 };
 

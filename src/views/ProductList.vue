@@ -155,6 +155,7 @@
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { productoService } from '@/services';
+import { usePagination } from '@/views/usePagination'; // Asegúrate de que esta ruta sea correcta
 import type { Producto, TipoProducto } from '@/services';
 
 const router = useRouter();
@@ -166,8 +167,7 @@ const tiposProducto = ref<TipoProducto[]>([]);
 const searchTerm = ref('');
 const selectedTipo = ref<number | ''>('');
 const stockFilter = ref<string>('');
-const currentPage = ref(1);
-const itemsPerPage = ref(10);
+const itemsPerPage = 10;
 
 // Computed
 const filteredProductos = computed(() => {
@@ -205,16 +205,7 @@ const filteredProductos = computed(() => {
   return result;
 });
 
-// Computed para paginación
-const totalPages = computed(() => {
-  return Math.ceil(filteredProductos.value.length / itemsPerPage.value);
-});
-
-const paginatedProductos = computed(() => {
-  const start = (currentPage.value - 1) * itemsPerPage.value;
-  const end = start + itemsPerPage.value;
-  return filteredProductos.value.slice(start, end);
-});
+const { currentPage, totalPages, paginatedItems: paginatedProductos } = usePagination(filteredProductos, ref(itemsPerPage));
 
 // Métodos
 const loadData = async () => {
@@ -275,15 +266,11 @@ const getStockClass = (stock: number) => {
   return 'stock-normal';
 };
 
-const formatCurrency = (amount: number) => {
-  return new Intl.NumberFormat('es-AR', {
-    style: 'currency',
-    currency: 'ARS'
-  }).format(amount);
-};
+import { formatCurrency } from '@/components/formatters';
 
-// const formatDate = (dateString: string) => { // Comentado porque no se usa
-//   return new Date(dateString).toLocaleDateString('es-AR'); 
+// Comentado porque no se usa
+// const formatDate = (dateString: string) => {
+//   return new Date(dateString).toLocaleDateString('es-AR');
 // };
 
 // Lifecycle
@@ -294,7 +281,6 @@ onMounted(() => {
 
 <style scoped>
 /* Importar CSS originales */
-@import '/css/nicepage.css';
 @import '/css/Lista-de-Respuestos.css';
 
 /* Estilos adicionales para Vue */

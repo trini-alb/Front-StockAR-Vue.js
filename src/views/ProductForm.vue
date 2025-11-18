@@ -27,7 +27,14 @@
             </div>
             <div class="u-form-group">
               <label for="tipo" class="u-label">Tipo Producto</label>
-              <input type="text" placeholder="Introduzca el tipo de producto" id="tipo" v-model="repuesto.tipo" class="u-border-black u-grey-15 u-input u-input-rectangle">
+              <div class="u-form-select-wrapper">
+                <select id="tipo" v-model.number="repuesto.idTipoProducto" class="u-border-black u-grey-15 u-input u-input-rectangle" required>
+                  <option value="" disabled>Seleccione un tipo</option>
+                  <option v-for="tipo in tiposProducto" :key="tipo.idTipoProducto" :value="tipo.idTipoProducto">
+                    {{ tipo.nombre }}
+                  </option>
+                </select>
+              </div>
             </div>
             <div class="u-form-group">
               <label for="marca" class="u-label">Marca</label>
@@ -45,9 +52,11 @@
               <div class="u-form-group u-form-partition-factor-3 u-form-select">
                 <label for="moneda" class="u-label">Moneda</label>
                 <div class="u-form-select-wrapper">
-                  <select id="moneda" v-model="repuesto.moneda" class="u-border-black u-grey-15 u-input u-input-rectangle">
-                    <option value="Dolar">Dolar</option>
-                    <option value="Peso Arg">Peso Arg</option>
+                  <select id="moneda" v-model.number="repuesto.idMoneda" class="u-border-black u-grey-15 u-input u-input-rectangle" required>
+                    <option value="" disabled>Seleccione moneda</option>
+                    <option v-for="moneda in monedas" :key="moneda.idMoneda" :value="moneda.idMoneda">
+                      {{ moneda.nombre }}
+                    </option>
                   </select>
                   <svg class="u-caret u-caret-svg" viewBox="0 0 16 16">
                     <polygon points="8,12 2,4 14,4"></polygon>
@@ -56,7 +65,15 @@
               </div>
               <div class="u-form-group u-form-partition-factor-3">
                 <label for="cantidad" class="u-label">Cantidad</label>
-                <input type="number" placeholder="Cantidad" id="cantidad" v-model.number="repuesto.cantidad" class="u-border-black u-grey-15 u-input u-input-rectangle">
+                <input type="number" placeholder="Cantidad" id="cantidad" v-model.number="repuesto.stock" class="u-border-black u-grey-15 u-input u-input-rectangle">
+              </div>
+              <div class="u-form-group u-form-partition-factor-3">
+                <label for="iva" class="u-label">IVA (%)</label>
+                <input type="number" placeholder="IVA" id="iva" v-model.number="repuesto.iva" class="u-border-black u-grey-15 u-input u-input-rectangle" required>
+              </div>
+              <div class="u-form-group u-form-partition-factor-3">
+                <label for="ganancia" class="u-label">Ganancia (%)</label>
+                <input type="number" placeholder="Ganancia" id="ganancia" v-model.number="repuesto.ganancia" class="u-border-black u-grey-15 u-input u-input-rectangle" required>
               </div>
             </div>
             <div class="u-form-group">
@@ -78,20 +95,29 @@
 <script setup lang="ts">
 // 2. Usamos <script setup> para Vue 3. 
 // No necesitamos importar defineComponent ni usar export default.
-import { reactive, ref } from 'vue';
+import { reactive, ref, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
+import { productoService } from '@/services';
+import type { TipoProducto, Moneda } from '@/types/producto.types';
+
+const router = useRouter();
 const imageUrl = ref<string | null>(null);
 const isSubmitting = ref(false);
+const tiposProducto = ref<TipoProducto[]>([]);
+const monedas = ref<Moneda[]>([]);
 
 const repuesto = reactive({
-  codigo: null,
+  codigo: '',
   nombre: '',
-  tipo: '',
+  idTipoProducto: '',
   marca: '',
   descripcion: '',
   precioNeto: null,
-  moneda: 'Dolar',
-  cantidad: null,
+  idMoneda: '',
+  stock: null,
   proveedor: '',
+  iva: null,
+  ganancia: null,
   imagen: null as File | null,
 });
 
@@ -108,12 +134,19 @@ function handleImageUpload(event: Event) {
 async function agregarRepuesto() {
   isSubmitting.value = true;
   try {
-    // Aquí iría la lógica para enviar los datos a tu backend
-    console.log('Datos del repuesto a agregar:', repuesto);
-    // Simular una llamada a la API
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    alert('Repuesto agregado (revisa la consola para ver los datos)');
-    // Aquí podrías redirigir o limpiar el formulario
+    const newProduct = {
+      ...repuesto,
+      codigo: Number(repuesto.codigo),
+      idTipoProducto: Number(repuesto.idTipoProducto),
+      idMoneda: Number(repuesto.idMoneda),
+      precioNeto: Number(repuesto.precioNeto),
+      stock: Number(repuesto.stock),
+      iva: Number(repuesto.iva),
+      ganancia: Number(repuesto.ganancia)
+    };
+    const createdProduct = await productoService.create(newProduct);
+    alert('Repuesto agregado exitosamente');
+    router.push(`/productos/${createdProduct.idProducto}`);
   } catch (error) {
     console.error("Error al agregar repuesto:", error);
     alert('Hubo un error al agregar el repuesto.');
@@ -121,6 +154,17 @@ async function agregarRepuesto() {
     isSubmitting.value = false;
   }
 }
+
+onMounted(async () => {
+  try {
+    const tiposData = await productoService.getTiposProducto();
+    tiposProducto.value = tiposData;
+    monedas.value = [];
+  } catch (error) {
+    console.error("Error cargando datos para el formulario:", error);
+    alert('No se pudieron cargar los tipos de producto y monedas.');
+  }
+});
 </script>
 
 <style scoped>

@@ -29,7 +29,14 @@
             </div>
             <div class="u-form-group">
               <label for="tipo" class="u-label">Tipo Producto</label>
-              <input type="text" placeholder="Introduzca el tipo de producto" id="tipo" v-model="repuesto.tipo" class="u-border-black u-grey-15 u-input u-input-rectangle">
+              <div class="u-form-select-wrapper">
+                <select id="tipo" v-model.number="repuesto.idTipoProducto" class="u-border-black u-grey-15 u-input u-input-rectangle" required>
+                  <option value="" disabled>Seleccione un tipo</option>
+                  <option v-for="tipo in tiposProducto" :key="tipo.idTipoProducto" :value="tipo.idTipoProducto">
+                    {{ tipo.nombre }}
+                  </option>
+                </select>
+              </div>
             </div>
             <div class="u-form-group">
               <label for="marca" class="u-label">Marca</label>
@@ -47,9 +54,11 @@
               <div class="u-form-group u-form-partition-factor-3 u-form-select">
                 <label for="moneda" class="u-label">Moneda</label>
                 <div class="u-form-select-wrapper">
-                  <select id="moneda" v-model="repuesto.moneda" class="u-border-black u-grey-15 u-input u-input-rectangle">
-                    <option value="Dolar">Dolar</option>
-                    <option value="Peso Arg">Peso Arg</option>
+                  <select id="moneda" v-model.number="repuesto.idMoneda" class="u-border-black u-grey-15 u-input u-input-rectangle" required>
+                    <option value="" disabled>Seleccione moneda</option>
+                    <option v-for="moneda in monedas" :key="moneda.idMoneda" :value="moneda.idMoneda">
+                      {{ moneda.nombre }}
+                    </option>
                   </select>
                   <svg class="u-caret u-caret-svg" viewBox="0 0 16 16">
                     <polygon points="8,12 2,4 14,4"></polygon>
@@ -58,7 +67,7 @@
               </div>
               <div class="u-form-group u-form-partition-factor-3">
                 <label for="cantidad" class="u-label">Cantidad</label>
-                <input type="number" placeholder="Cantidad" id="cantidad" v-model.number="repuesto.cantidad" class="u-border-black u-grey-15 u-input u-input-rectangle">
+                <input type="number" placeholder="Cantidad" id="cantidad" v-model.number="repuesto.stock" class="u-border-black u-grey-15 u-input u-input-rectangle">
               </div>
             </div>
             <div class="u-form-group">
@@ -80,7 +89,8 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { productoService, type Producto } from '@/services';
+import { productoService, type Producto, type TipoProducto } from '@/services';
+import type { Moneda } from '@/types/producto.types';
 
 const route = useRoute();
 const router = useRouter();
@@ -89,56 +99,63 @@ const loading = ref(true);
 const error = ref('');
 const isSubmitting = ref(false);
 const imageUrl = ref<string | null>(null);
+const tiposProducto = ref<TipoProducto[]>([]);
+const monedas = ref<Moneda[]>([]);
 
 interface RepuestoForm {
   idProducto: number | null;
-  codigo: number | null;
+  codigo: string;
   nombre: string;
-  tipo: string;
+  idTipoProducto: number | string;
   marca: string;
   descripcion: string;
   precioNeto: number | null;
-  moneda: string;
-  cantidad: number | null;
+  idMoneda: number | string;
+  stock: number | null;
   proveedor: string;
   imagen: File | null;
 }
 
 const repuesto = reactive<RepuestoForm>({
   idProducto: null,
-  codigo: null,
+  codigo: '',
   nombre: '',
-  tipo: '',
+  idTipoProducto: '',
   marca: '',
   descripcion: '',
   precioNeto: null,
-  moneda: 'Dolar',
-  cantidad: null,
+  idMoneda: '',
+  stock: null,
   proveedor: '',
   imagen: null as File | null,
 });
 
 const loadProduct = async () => {
   const productId = Number(route.params.id);
-  if (isNaN(productId)) {
-    error.value = 'ID de producto inválido.';
-    loading.value = false;
-    return;
-  }
 
   try {
-    const data = await productoService.getById(productId);
-    // Mapear los datos del servicio al formulario
+    const [data, tiposData] = await Promise.all([
+      productoService.getById(productId),
+      productoService.getTiposProducto()
+    ]);
+
+    tiposProducto.value = tiposData;
+    // Si tienes una lista fija de monedas, asígnala aquí manualmente
+    monedas.value = [
+      { idMoneda: 1, nombre: 'Peso Argentino', cotizacion: 1, tipoMoneda: { idTipoMoneda: 1, nombre: 'ARS' } },
+      { idMoneda: 2, nombre: 'Dólar', cotizacion: 1000, tipoMoneda: { idTipoMoneda: 2, nombre: 'USD' } }
+    ];
+
     repuesto.idProducto = data.idProducto;
-    repuesto.codigo = data.codigo;
+    repuesto.codigo = data.codigo.toString();
     repuesto.nombre = data.nombre;
     repuesto.descripcion = data.descripcion;
     repuesto.marca = data.marca;
-    repuesto.precioNeto = data.precioNeto;
-    repuesto.cantidad = data.stock;
-    repuesto.tipo = data.tipoProducto?.nombre || '';
-    repuesto.moneda = data.moneda?.nombre || 'Dolar';
-    imageUrl.value = data.imagenUrl; // Asumiendo que el servicio devuelve una URL de imagen
+    repuesto.precioNeto = data.precioNeto ?? null;
+    repuesto.stock = data.stock ?? null;
+    repuesto.idTipoProducto = data.tipoProducto?.idTipoProducto || '';
+    repuesto.idMoneda = data.moneda?.idMoneda || '';
+    imageUrl.value = (data as any).imagenUrl || null; // Solo si existe
   } catch (err) {
     error.value = 'No se pudo cargar el producto para modificar.';
     console.error(err);
@@ -158,11 +175,21 @@ const handleImageUpload = (event: Event) => {
 
 const modificarRepuesto = async () => {
   isSubmitting.value = true;
+  if (!repuesto.idProducto) {
+    alert('Error: ID de producto no encontrado.');
+    isSubmitting.value = false;
+    return;
+  }
   try {
-    // Lógica para enviar los datos actualizados al backend
-    console.log('Datos del repuesto a modificar:', repuesto);
-    // await productoService.update(repuesto.idProducto, repuesto); // Llamada real al servicio
-    await new Promise(resolve => setTimeout(resolve, 1500)); // Simulación
+    const updatedData = {
+      ...repuesto,
+      codigo: Number(repuesto.codigo),
+      idTipoProducto: Number(repuesto.idTipoProducto),
+      idMoneda: Number(repuesto.idMoneda),
+      precioNeto: repuesto.precioNeto ?? 0,
+      stock: repuesto.stock ?? 0,
+    };
+    await productoService.update(repuesto.idProducto, updatedData);
     alert('Repuesto modificado exitosamente.');
     router.push(`/productos/${repuesto.idProducto}`);
   } catch (err) {

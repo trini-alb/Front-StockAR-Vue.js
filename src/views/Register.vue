@@ -196,7 +196,7 @@ const router = useRouter();
 interface RegisterForm {
   email: string;
   contraseña: string;
-  confirmarContraseña: string;
+  confirmarContraseña: string; // Corregido de confirmarContrasena
   nombre: string;
   apellido: string;
   telefono: string;
@@ -208,7 +208,7 @@ interface RegisterForm {
 const registerForm = ref<RegisterForm>({
   email: '',
   contraseña: '',
-  confirmarContraseña: '',
+  confirmarContraseña: '', // Corregido de confirmarContrasena
   nombre: '',
   apellido: '',
   telefono: '',
@@ -301,8 +301,6 @@ const handleRegister = async () => {
 
 <style>
 /* Importar CSS originales */
-@import '/css/nicepage.css';
-@import '/css/Registro.css';
 
 .error-message {
   color: #ff4757;
