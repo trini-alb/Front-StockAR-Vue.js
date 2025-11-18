@@ -1,9 +1,10 @@
-import { createApp } from 'vue'
-import './style.css'
-import App from './App.vue'
-import router from './router' // 1. Importamos nuestro router
-const app = createApp(App)
+import { createApp } from 'vue';
+import App from './App.vue';
+import router from './router';
 
-app.use(router) // 2. Le decimos a la app que use el router
+import './assets/tailwind.css';
 
-app.mount('#app')
+const app = createApp(App);
+app.use(router);
+app.mount('#app');
+
