@@ -4,7 +4,8 @@ import type { Venta, CreateVentaDto } from '@/types/venta.types';
 export class VentaService {
   private readonly endpoints = {
     ventas: '/ventas',
-    detalleVentas: '/detalle-ventas'
+    detalleVentas: '/detalle-ventas',
+    buscarPorFecha: '/ventas/buscar-por-fecha' // Endpoint específico para búsquedas por fecha
   };
 
   // CRUD Ventas
@@ -25,14 +26,16 @@ export class VentaService {
   }
 
   // Métodos de utilidad
-  async getVentasByDateRange(fechaInicio: string, fechaFin: string): Promise<Venta[]> {
-    const ventas = await this.getAll();
-    return ventas.filter(v => {
-      const fechaVenta = new Date(v.fechaHora);
-      const inicio = new Date(fechaInicio);
-      const fin = new Date(fechaFin);
-      return fechaVenta >= inicio && fechaVenta <= fin;
-    });
+  async getVentasByDateRange(fechaInicio?: string, fechaFin?: string): Promise<Venta[]> {
+    // Construir los parámetros de la URL para la API
+    const params = new URLSearchParams();
+    if (fechaInicio) {
+      params.append('fechaDesde', fechaInicio);
+    }
+    if (fechaFin) {
+      params.append('fechaHasta', fechaFin);
+    }
+    return apiService.get<Venta[]>(`${this.endpoints.buscarPorFecha}?${params.toString()}`);
   }
 
   async getVentasDelMes(): Promise<Venta[]> {
@@ -46,7 +49,7 @@ export class VentaService {
     );
   }
 
-  async getTotalVentasPorPeriodo(fechaInicio: string, fechaFin: string): Promise<number> {
+  async getTotalVentasPorPeriodo(fechaInicio = '', fechaFin = ''): Promise<number> {
     const ventas = await this.getVentasByDateRange(fechaInicio, fechaFin);
     return ventas.reduce((total, venta) => total + venta.total, 0);
   }
