@@ -1,174 +1,164 @@
 <template>
-  <!-- Basado en Calcular-Precio.html original -->
-  <div class="calcular-precio-container">
-    <!-- Header con navegación -->
-    <header class="u-black u-clearfix u-header u-header" id="header">
-      <div class="u-clearfix u-sheet u-valign-middle u-sheet-1">
-        <div class="custom-expanded u-clearfix u-custom-html u-custom-html-1">
-          <div class="menu-usuario">
-            <div class="menu-desplegable">
-              <span>{{ currentUser?.empleado?.nombre }}</span>
-              <a @click="handleLogout" href="#">Cerrar sesión</a>
-            </div>
-          </div>
-        </div>
-        <p class="u-text u-text-default u-text-1">
-          <span style="font-size: 1.875rem;">Calcular Precio</span>
+  <div class="max-w-4xl mx-auto p-4 space-y-4">
+    <!-- Encabezado con usuario -->
+    <div class="flex items-center justify-between gap-4">
+      <div>
+        <h1 class="text-2xl font-semibold">Calcular precio</h1>
+        <p class="text-sm opacity-70">
+          Calculá el precio de venta según moneda de compra, moneda de venta y porcentaje de ganancia.
         </p>
-        
-        <!-- Navegación simplificada -->
-        <nav class="u-align-left u-menu u-menu-1">
-          <div class="drawer-nav">
-            <router-link to="/dashboard">Inicio</router-link>
-            <router-link to="/productos">Lista de repuestos</router-link>
-            <router-link to="/productos/nuevo">Agregar repuesto</router-link>
-            <router-link to="/ventas/nueva">Registrar venta</router-link>
-            <router-link to="/ventas">Lista de ventas</router-link>
-          </div>
-        </nav>
       </div>
-    </header>
 
-    <!-- Sección principal -->
-    <section class="u-clearfix u-section-1" id="block-2">
-      <div class="u-clearfix u-sheet u-valign-middle-lg u-valign-middle-md u-valign-middle-sm u-valign-middle-xs u-sheet-1">
-        
-        <!-- Logos decorativos -->
-        <img class="u-image u-image-contain u-image-default u-image-1" src="/images/StockAR1-Photoroom.png" alt="">
-        <img class="u-image u-image-contain u-image-default u-image-2" src="/images/StockAR1-Photoroom.png" alt="">
-        
-        <!-- Formulario de cálculo -->
-        <div class="u-form u-form-1">
-          <form @submit.prevent="calcularPrecio" class="u-clearfix u-form-spacing-10 u-form-vertical u-inner-form">
-            
-            <!-- Seleccionar moneda de COMPRA -->
-            <div class="u-form-group u-form-select u-form-group-1">
-              <label for="monedaCompra" class="u-label">Seleccione moneda de COMPRA</label>
-              <div class="u-form-select-wrapper">
-                <select 
-                  id="monedaCompra" 
-                  v-model="formulario.monedaCompra" 
-                  class="u-input u-input-rectangle"
-                  @change="actualizarCotizaciones"
-                >
-                  <option value="USD">Dólar</option>
-                  <option value="ARS">Peso Argentino</option>
-                </select>
-              </div>
+      <div class="flex items-center gap-3">
+        <span v-if="currentUser" class="text-sm">
+          Hola, <strong>{{ currentUser.empleado?.nombre }}</strong>
+        </span>
+        <button class="btn btn-outline btn-sm" @click="handleLogout">
+          Cerrar sesión
+        </button>
+      </div>
+    </div>
+
+    <!-- Tarjeta principal -->
+    <div class="card bg-base-100 shadow">
+      <div class="card-body space-y-4">
+        <!-- Formulario -->
+        <form class="grid gap-4 md:grid-cols-2" @submit.prevent="calcularPrecio">
+          <!-- Moneda de compra -->
+          <label class="form-control">
+            <div class="label">
+              <span class="label-text">Moneda de COMPRA</span>
             </div>
+            <select
+              id="monedaCompra"
+              v-model="formulario.monedaCompra"
+              class="select select-bordered"
+              @change="actualizarCotizaciones"
+            >
+              <option value="USD">Dólar (USD)</option>
+              <option value="ARS">Peso Argentino (ARS)</option>
+            </select>
+          </label>
 
-            <!-- Precio de compra -->
-            <div class="u-form-group u-form-group-3">
-              <label for="precioCompra" class="u-label">
+          <!-- Moneda de venta -->
+          <label class="form-control">
+            <div class="label">
+              <span class="label-text">Moneda de VENTA</span>
+            </div>
+            <select
+              id="monedaVenta"
+              v-model="formulario.monedaVenta"
+              class="select select-bordered"
+              @change="actualizarCotizaciones"
+            >
+              <option value="USD">Dólar (USD)</option>
+              <option value="ARS">Peso Argentino (ARS)</option>
+            </select>
+          </label>
+
+          <!-- Precio de compra -->
+          <label class="form-control">
+            <div class="label">
+              <span class="label-text">
                 Precio de compra ({{ formulario.monedaCompra }})
-              </label>
-              <input 
-                type="number" 
-                step="0.01"
-                id="precioCompra" 
-                v-model="formulario.precioCompra"
-                class="u-input u-input-rectangle"
-                placeholder="Ingrese el precio de compra"
-                required
-              />
+              </span>
             </div>
+            <input
+              id="precioCompra"
+              type="number"
+              step="0.01"
+              v-model.number="formulario.precioCompra"
+              class="input input-bordered"
+              placeholder="Ej: 120.50"
+              required
+            />
+          </label>
 
-            <!-- Seleccionar moneda de VENTA -->
-            <div class="u-form-group u-form-select u-form-group-2">
-              <label for="monedaVenta" class="u-label">Seleccione moneda de VENTA</label>
-              <div class="u-form-select-wrapper">
-                <select 
-                  id="monedaVenta" 
-                  v-model="formulario.monedaVenta" 
-                  class="u-input u-input-rectangle"
-                  @change="actualizarCotizaciones"
-                >
-                  <option value="USD">Dólar</option>
-                  <option value="ARS">Peso Argentino</option>
-                </select>
-              </div>
+          <!-- Porcentaje de ganancia -->
+          <label class="form-control">
+            <div class="label">
+              <span class="label-text">Porcentaje de GANANCIA</span>
             </div>
+            <input
+              id="porcentajeGanancia"
+              type="number"
+              step="0.01"
+              v-model.number="formulario.porcentajeGanancia"
+              class="input input-bordered"
+              placeholder="Ej: 25 (para 25%)"
+              required
+            />
+          </label>
 
-            <!-- Porcentaje de ganancia -->
-            <div class="u-form-group u-form-group-3">
-              <label for="porcentajeGanancia" class="u-label">Ingrese porcentaje de GANANCIA</label>
-              <input 
-                type="number" 
-                step="0.01"
-                id="porcentajeGanancia" 
-                v-model="formulario.porcentajeGanancia"
-                class="u-input u-input-rectangle"
-                placeholder="Ej: 25 (para 25%)"
-                required
-              />
+          <!-- Cotización -->
+          <div class="md:col-span-2" v-if="cotizacionActual > 0 && necesitaConversion">
+            <div class="alert alert-info">
+              <span>
+                Cotización usada:
+                <strong>1 USD = ${{ cotizacionActual.toFixed(2) }} ARS</strong>
+              </span>
             </div>
+          </div>
 
-            <!-- Cotización actual (informativa) -->
-            <div v-if="cotizacionActual > 0" class="cotizacion-info">
-              <p><strong>Cotización USD:</strong> ${{ cotizacionActual.toFixed(2) }}</p>
-            </div>
+          <!-- Botón Calcular -->
+          <div class="md:col-span-2 flex justify-end">
+            <button
+              type="submit"
+              class="btn btn-primary"
+              :disabled="loading"
+            >
+              {{ loading ? 'Calculando...' : 'Calcular precio' }}
+            </button>
+          </div>
+        </form>
 
-            <!-- Botón calcular -->
-            <div class="u-align-center u-form-group u-form-submit">
-              <button 
-                type="submit"
-                class="u-border-2 u-border-black u-btn u-btn-submit u-button-style u-custom-color-1 u-hover-palette-2-base u-btn-1"
-                :disabled="loading"
-              >
-                {{ loading ? 'Calculando...' : 'Calcular' }}
-              </button>
-            </div>
+        <!-- Resultado -->
+        <div v-if="resultado" class="alert alert-success flex-col items-start gap-2 mt-2">
+          <h3 class="font-semibold text-lg">Resultado del cálculo</h3>
+          <p>
+            <strong>Precio de compra:</strong>
+            {{ formatearMoneda(formulario.precioCompra ?? 0, formulario.monedaCompra) }}
+          </p>
+          <p>
+            <strong>Ganancia ({{ formulario.porcentajeGanancia }}%):</strong>
+            {{ formatearMoneda(resultado.ganancia, formulario.monedaVenta) }}
+          </p>
+          <p class="text-lg font-semibold">
+            <strong>Precio de venta:</strong>
+            {{ formatearMoneda(resultado.precioVenta, formulario.monedaVenta) }}
+          </p>
 
-            <!-- Resultado del cálculo -->
-            <div v-if="resultado" class="resultado-calculo">
-              <h3>Resultado del Cálculo:</h3>
-              <div class="resultado-detalle">
-                <p><strong>Precio de compra:</strong> {{ formatearMoneda(formulario.precioCompra, formulario.monedaCompra) }}</p>
-                <p><strong>Ganancia ({{ formulario.porcentajeGanancia }}%):</strong> {{ formatearMoneda(resultado.ganancia, formulario.monedaVenta) }}</p>
-                <p class="precio-final"><strong>Precio de venta:</strong> {{ formatearMoneda(resultado.precioVenta, formulario.monedaVenta) }}</p>
-                
-                <div v-if="formulario.monedaCompra !== formulario.monedaVenta" class="conversion-info">
-                  <small>
-                    <em>Conversión aplicada: 1 USD = ${{ cotizacionActual.toFixed(2) }} ARS</em>
-                  </small>
-                </div>
-              </div>
-            </div>
+          <p v-if="resultado.cotizacionUsada" class="text-xs opacity-70">
+            Conversión aplicada con cotización:
+            {{ resultado.cotizacionUsada.toFixed(2) }}
+          </p>
+        </div>
 
-            <!-- Mensajes de error -->
-            <div v-if="errorMessage" class="error-message">
-              {{ errorMessage }}
-            </div>
-
-          </form>
+        <!-- Error -->
+        <div v-if="errorMessage" class="alert alert-error mt-2">
+          {{ errorMessage }}
         </div>
       </div>
-    </section>
-
-    <!-- Footer -->
-    <footer class="u-black u-clearfix u-footer" id="footer">
-      <div class="u-clearfix u-sheet u-valign-middle u-sheet-1">
-        <router-link to="/dashboard" class="u-image u-logo u-image-1">
-          <img src="/images/logo-Photoroom.png" class="u-logo-image u-logo-image-1" alt="StockAR">
-        </router-link>
-      </div>
-    </footer>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { authService, cotizacionService } from '@/services';
-import type { Usuario } from '@/services';
+import { authService } from '../services/auth.service';
+import { cotizacionService } from '../services/cotizacion.service';
+
 const router = useRouter();
 
-// Interfaces
+// ---- Tipos internos ----
+type Moneda = 'USD' | 'ARS';
+
 interface FormularioCalculo {
-  monedaCompra: 'USD' | 'ARS';
-  monedaVenta: 'USD' | 'ARS';
-  precioCompra: number;
-  porcentajeGanancia: number;
+  monedaCompra: Moneda;
+  monedaVenta: Moneda;
+  precioCompra: number | null;
+  porcentajeGanancia: number | null;
 }
 
 interface ResultadoCalculo {
@@ -177,8 +167,8 @@ interface ResultadoCalculo {
   cotizacionUsada?: number;
 }
 
-// Estado reactivo
-const currentUser = ref<Usuario | null>(null);
+// ---- Estado ----
+const currentUser = ref<any | null>(null);
 const loading = ref(false);
 const errorMessage = ref('');
 const cotizacionActual = ref(0);
@@ -186,236 +176,117 @@ const cotizacionActual = ref(0);
 const formulario = ref<FormularioCalculo>({
   monedaCompra: 'USD',
   monedaVenta: 'ARS',
-  precioCompra: 0,
-  porcentajeGanancia: 0
+  precioCompra: null,
+  porcentajeGanancia: null
 });
 
 const resultado = ref<ResultadoCalculo | null>(null);
 
-// Computed
-const necesitaConversion = computed(() => {
-  return formulario.value.monedaCompra !== formulario.value.monedaVenta;
-});
+// ¿Hay que convertir de una moneda a otra?
+const necesitaConversion = computed(
+  () => formulario.value.monedaCompra !== formulario.value.monedaVenta
+);
 
-// Métodos
-const loadCotizacion = async () => {
+// ---- Lógica de cotización ----
+async function loadCotizacion() {
   try {
     cotizacionActual.value = await cotizacionService.getUsdOficial();
   } catch (error) {
     console.error('Error cargando cotización:', error);
-    cotizacionActual.value = 1000; // Valor por defecto
+    // Valor de backup por si la API falla
+    cotizacionActual.value = 1000;
   }
-};
+}
 
-const actualizarCotizaciones = () => {
+function actualizarCotizaciones() {
   if (necesitaConversion.value) {
-    loadCotizacion();
+    void loadCotizacion();
   }
-};
+}
 
-const calcularPrecio = async () => {
-  if (formulario.value.precioCompra <= 0 || formulario.value.porcentajeGanancia <= 0) {
-    resultado.value = null;
-    errorMessage.value = 'Por favor ingrese valores válidos';
+// ---- Cálculo de precio ----
+async function calcularPrecio() {
+  errorMessage.value = '';
+  resultado.value = null;
+
+  const precio = formulario.value.precioCompra ?? 0;
+  const porcentaje = formulario.value.porcentajeGanancia ?? 0;
+
+  if (precio <= 0 || porcentaje <= 0) {
+    errorMessage.value = 'Por favor ingrese valores válidos.';
     return;
   }
 
   loading.value = true;
-  errorMessage.value = '';
-  
+
   try {
-    let precioBase = formulario.value.precioCompra;
-    
-    // Si necesita conversión de moneda
+    let precioBase = precio;
+
     if (necesitaConversion.value) {
       if (cotizacionActual.value <= 0) {
         await loadCotizacion();
       }
-      
+
       if (formulario.value.monedaCompra === 'USD' && formulario.value.monedaVenta === 'ARS') {
-        // USD a ARS
         precioBase = precioBase * cotizacionActual.value;
       } else if (formulario.value.monedaCompra === 'ARS' && formulario.value.monedaVenta === 'USD') {
-        // ARS a USD
         precioBase = precioBase / cotizacionActual.value;
       }
     }
-    
-    // Calcular ganancia y precio final
-    const ganancia = (precioBase * formulario.value.porcentajeGanancia) / 100;
+
+    const ganancia = (precioBase * porcentaje) / 100;
     const precioVenta = precioBase + ganancia;
-    
+
     resultado.value = {
-      precioVenta: precioVenta,
-      ganancia: ganancia,
+      precioVenta,
+      ganancia,
       cotizacionUsada: necesitaConversion.value ? cotizacionActual.value : undefined
     };
-    
-    // Limpiar formulario para el siguiente cálculo
-    formulario.value.precioCompra = 0;
-    formulario.value.porcentajeGanancia = 0;
-
   } catch (error) {
-    errorMessage.value = 'Error al calcular el precio';
-    console.error('Error en cálculo:', error);
+    console.error('Error al calcular el precio:', error);
+    errorMessage.value = 'Ocurrió un error al calcular el precio.';
   } finally {
     loading.value = false;
   }
-};
+}
 
-const formatearMoneda = (amount: number, moneda: string) => {
+// ---- Helpers ----
+function formatearMoneda(monto: number, moneda: Moneda) {
+  const amount = Number.isFinite(monto) ? monto : 0;
+
   if (moneda === 'USD') {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD'
     }).format(amount);
-  } else {
-    return new Intl.NumberFormat('es-AR', {
-      style: 'currency',
-      currency: 'ARS'
-    }).format(amount);
   }
-};
 
-const handleLogout = async () => {
-  if (confirm('¿Está seguro que desea cerrar sesión?')) {
-    try {
-      await authService.logout();
-      router.push('/login');
-    } catch (error) {
-      console.error('Error en logout:', error);
-      authService.clearStorage();
-      router.push('/login');
-    }
+  return new Intl.NumberFormat('es-AR', {
+    style: 'currency',
+    currency: 'ARS'
+  }).format(amount);
+}
+
+async function handleLogout() {
+  if (!confirm('¿Está seguro que desea cerrar sesión?')) return;
+
+  try {
+    await authService.logout();
+  } catch (error) {
+    console.error('Error en logout:', error);
+    authService.clearStorage();
+  } finally {
+    router.push('/login');
   }
-};
+}
 
-// Lifecycle
+// ---- Lifecycle ----
 onMounted(() => {
   currentUser.value = authService.getCurrentUser();
 });
-
 </script>
- 
+
 <style scoped>
-/* Importar CSS originales */
-@import '/css/nicepage.css';
-@import '/css/Calcular-Precio.css';
-
-/* Estilos adicionales para el resultado */
-.cotizacion-info {
-  background: #f0f9ff;
-  padding: 10px;
-  border-radius: 5px;
-  margin: 10px 0;
-  text-align: center;
-  border: 1px solid #0ea5e9;
-}
-
-.resultado-calculo {
-  background: #f0fdf4;
-  padding: 20px;
-  border-radius: 10px;
-  margin: 20px 0;
-  border: 2px solid #22c55e;
-}
-
-.resultado-calculo h3 {
-  color: #166534;
-  margin: 0 0 15px 0;
-  text-align: center;
-}
-
-.resultado-detalle p {
-  margin: 8px 0;
-  font-size: 1.1rem;
-}
-
-.precio-final {
-  font-size: 1.3rem !important;
-  color: #166534;
-  background: #dcfce7;
-  padding: 10px;
-  border-radius: 5px;
-  border: 1px solid #22c55e;
-}
-
-.conversion-info {
-  margin-top: 15px;
-  padding: 10px;
-  background: #f8fafc;
-  border-radius: 5px;
-  text-align: center;
-}
-
-.error-message {
-  color: #ff4757;
-  text-align: center;
-  margin-top: 10px;
-  padding: 10px;
-  background-color: #ffe0e0;
-  border-radius: 5px;
-  border: 1px solid #ffcdd2;
-}
-
-/* Navegación simplificada */
-.drawer-nav {
-  display: flex;
-  gap: 20px;
-  flex-wrap: wrap;
-}
-
-.drawer-nav a {
-  color: white;
-  text-decoration: none;
-  padding: 5px 10px;
-  border-radius: 3px;
-  transition: background 0.3s ease;
-}
-
-.drawer-nav a:hover {
-  background: rgba(255,255,255,0.1);
-}
-
-.menu-usuario {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-  color: white;
-}
-
-.menu-desplegable {
-  display: flex;
-  gap: 15px;
-  align-items: center;
-}
-
-.menu-desplegable a {
-  color: white;
-  text-decoration: none;
-  cursor: pointer;
-}
-
-.menu-desplegable a:hover {
-  text-decoration: underline;
-}
-
-@media (max-width: 768px) {
-  .drawer-nav {
-    flex-direction: column;
-    gap: 10px;
-  }
-  
-  .resultado-calculo {
-    padding: 15px;
-  }
-  
-  .resultado-detalle p {
-    font-size: 1rem;
-  }
-  
-  .precio-final {
-    font-size: 1.1rem !important;
-  }
-}
+/* Todo lo visual lo maneja DaisyUI/Tailwind; acá solo irían ajustes finos si los necesitás */
 </style>
+
