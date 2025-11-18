@@ -98,7 +98,6 @@ onMounted(() => {
  
 <style scoped>
 /* Importar CSS originales */
-@import '/css/MenuPrincipal.css';
 
 .u-text-1 {
   margin: 20px auto 0;

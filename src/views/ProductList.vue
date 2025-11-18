@@ -281,7 +281,6 @@ onMounted(() => {
 
 <style scoped>
 /* Importar CSS originales */
-@import '/css/Lista-de-Respuestos.css';
 
 /* Estilos adicionales para Vue */
 .search-container {

@@ -264,7 +264,6 @@ onMounted(() => {
 
 <style scoped>
 /* Importar CSS originales */
-@import '/css/Registrar-Venta.css';
 
 /* Estilos adicionales para la funcionalidad de ventas */
 .search-input-container {
